@@ -1,0 +1,238 @@
+---
+title: "Two years of transducers at HSE"
+author: "George Moroz"
+institute: "Linguistic Convergence Laboratory, HSE University, Moscow"
+date: "18 October 2022"
+output: 
+  beamer_presentation:
+    df_print: kable
+    latex_engine: xelatex
+    citation_package: natbib
+    keep_tex: false
+    includes:
+      in_header: "config/presento.sty"
+always_allow_html: true
+bibliography: bibliography.bib
+urlcolor: colorblue
+citecolor: colorblue
+csl: "config/apa.csl"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, dev='cairo_pdf')
+library(tidyverse)
+theme_set(theme_minimal()+theme(legend.position = "bottom", text = element_text(size = 18)))
+```
+
+# Tranducers for morphological parsing at HSE
+
+## Tranducers for morphological parsing at HSE
+
+- Nick Howell gave a talk at School of Linguistics' seminar
+- In 2020 we started four projects on:
+    - [Abaza](https://github.com/dasharakelova/abaza_analyzer) (Daria Arakelova)
+    - [Agul](https://github.com/climoy/field_morph) (Roman Klimov)
+    - [Bagvalal](https://github.com/ruthenian8/bagvalal/) (Daniil Ignatiev)
+    - [Botlikh](https://github.com/ddemain/botlikh-mp-2020/) (Artyom Sinelshikov) \pause
+- In summer of 2020 Danya continued his work in Google Summer of Code \pause 
+- In 2021 I started five projects on my own ([here](https://agricolamz.github.io/2021.12.02_intro_to_linux_lexd_github_makefiles/) some lectures):
+    - [Chamalal](https://github.com/ZinaBudilova/Chamalal_parser) (Zina Budilova)
+    - [Botlikh](https://github.com/fkaimphilat/botlikh-morph) (Igor Philatov)
+    - [Andi](https://github.com/vbunt/andi) (Lera Buntyakova)
+    - [Agul](https://github.com/nstsi/agul) (Nastya Burakova)
+    - [Rutul](https://github.com/Hanna-Cupery/rutul) (Hanna Cupery)
+    - continuation of [Bagvalal](https://github.com/ruthenian8/bagvalal/) (Daniil Ignatiev)
+    - [Even](https://github.com/tbkazakova/even_corpus) (Tanya Kazakova under supervision of Oleg Serikov) \pause
+- Result: [@arakelova21; @budilova22; @buntyakova22; @burakova22; @kazakova22;@cupery22]
+    
+# What is transducer?
+
+## What is transducer?
+
+Trasducers are finite-state networks with two memory tapes of memory that can perform morphological analysis and related tasks. However, it easier to understand via the examples.
+
+- Here is an example of finite-state automaton with one memory tape. It checks whether input string is a word *song*:
+
+```{r}
+library(DiagrammeR)
+grViz('
+  digraph G { rankdir="LR"
+  node [fontname="Brill",shape=circle,fontsize=14,fixedsize=true]
+  edge [fontname="Brill",fontsize=16]
+  0 [label="0"];
+  1 [label="1"];
+  2 [label="2"];
+  3 [label="3"];
+  4 [label="4: ✔️",shape=doublecircle];
+  5 [label="5: ✘",shape=doublecircle];
+  0 -> 1 [label="s"];
+  0 -> 5 [label="not s"];
+  1 -> 2 [label="o"];
+  1 -> 5 [label="not o"];
+  2 -> 3 [label="n"];
+  2 -> 5 [label="not n"];
+  3 -> 4 [label="g"];
+  3 -> 5 [label="not g"];
+}')
+```
+
+## What is transducer?
+
+Trasducers are finite-state networks with two memory tapes of memory that can perform morphological analysis and related tasks. However, it easier to understand via the examples.
+
+- Here is an example of finite-state automaton with one memory tape. It checks whether input string is a word *song*.
+- Usually this "not X" arrow is not written:
+
+```{r}
+grViz('
+  digraph G { rankdir="LR"
+  node [fontname="Brill",shape=circle,fontsize=14,fixedsize=true]
+  edge [fontname="Brill",fontsize=16]
+  0 [label="0"];
+  1 [label="1"];
+  2 [label="2"];
+  3 [label="3"];
+  4 [label="4",shape=doublecircle];
+  0 -> 1 [label="s"];
+  1 -> 2 [label="o"];
+  2 -> 3 [label="n"];
+  3 -> 4 [label="g"];
+}')
+```
+
+## What is transducer?
+
+Trasducers are finite-state networks with two memory tapes of memory that can perform morphological analysis and related tasks. However, it easier to understand via the examples.
+
+- Here is an example of finite-state automaton with one memory tape. It checks whether input string is a word *song*.
+- Usually this "not X" arrow is not written
+- It is possible to code multiple words (*son*, *sons*, *song*):
+
+```{r}
+grViz('
+  digraph G { rankdir="LR"
+  node [fontname="Brill",shape=circle,fontsize=14,fixedsize=true]
+  edge [fontname="Brill",fontsize=16]
+  0 [label="0"];
+  1 [label="1"];
+  2 [label="2"];
+  3 [label="3",shape=doublecircle];
+  4 [label="4",shape=doublecircle];
+  5 [label="5",shape=doublecircle];
+  0 -> 1 [label="s"];
+  1 -> 2 [label="o"];
+  2 -> 3 [label="n"];
+  3 -> 4 [label="g"];
+  3 -> 5 [label="s"];
+}')
+```
+
+
+## What is transducer?
+
+Transducers has two memory tapes that can be treated as overwriting:
+
+- `son` becomes `son<n><sg>`
+- `song` becomes `song<n><sg>`
+- `sons` becomes `son<n><pl>`
+- everything else returns an error
+
+```{r}
+grViz('
+  digraph G { rankdir="LR"
+  node [fontname="Brill",shape=circle,fontsize=14,fixedsize=true]
+  edge [fontname="Brill",fontsize=16]
+  0 [label="0"];
+  1 [label="1"];
+  2 [label="2"];
+  3 [label="3"];
+  4 [label="4",shape=doublecircle];
+  5 [label="5",shape=doublecircle];
+  6 [label="6",shape=doublecircle];
+  0 -> 1 [label="s:s"];
+  1 -> 2 [label="o:o"];
+  2 -> 3 [label="n:n"];
+  2 -> 6 [label="n:n<n><sg>"];
+  3 -> 4 [label="g:g<n><sg>"];
+  3 -> 5 [label="s:<n><pl>"];
+}')
+```
+
+## Why use transducers?
+
+- they are reversible, so analysis (`sons` → `son<n><pl>`) and generation (`son<n><pl>` → `sons`) can be done with the same transducer \pause
+- they can be optimized for the fast search  \pause
+- they can be easily combined with other transducers (e. g. transliteration or even translation)
+
+# How to use transducers?
+
+## How to use transducers?
+
+- read [@beesley03; @karttunen92]
+- `lexd` --- a finite-state lexicon compiler [@swanson21]
+- `twol` --- a tool for (mor)phonology
+
+## `lexd` example (Zilo Andi numerals)
+
+```
+PATTERNS
+Numerals NumearalMarker
+
+LEXICON Numerals
+иᵸшду                 # пять; five
+ойлIи                 # шесть; six
+гьокьу                # семь; seven
+бейкьи                # восемь; eight
+гьочIо                # девять; nine
+гьоцIо                # десять; ten
+
+LEXICON NumearalMarker
+<num>:>гу
+```
+\pause
+```
+иᵸшдугу:иᵸшду<num>
+ойлIигу:ойлIи<num>
+гьокьугу:гьокьу<num>
+бейкьигу:бейкьи<num>
+гьочIогу:гьочIо<num>
+гьоцIогу:гьоцIо<num>
+```
+
+## Pipeline for developing morphological transducer
+
+- describe morphology and (mor)phonology using available sources \pause
+- compile lexicon with inflectional type annotation \pause
+- compile test forms and their analysis based on available data (optional) \pause
+    - `чIе<NUM><num><obl.m><epent.m><an.sg><aff> чIегушубо` (Zilo Andi)
+    - 2-num-oml.m-<an.sg>aff
+- test your transducer against some annotated (or not annotated) corpus (optional)
+
+
+## Main problems during morphological transducer development
+
+- not usual development environment (at least for our students/not computer linguists)
+- time
+- lack of resources
+- traditions of Apertium people
+    - there is a straightforward, but not the shortest way
+        - from `чIе<NUM><num><obl.m><epent.m><an.sg><aff> чIегушубо` (Zilo Andi)
+        - to two-ɴᴜᴍ-ᴏʙʟ.ᴍ-<ᴀɴ.sɢ>ᴀꜰꜰ
+- difference in linguistic descriptions
+- difference in languages
+
+# Zilo: from 0 to 40866 wordforms
+
+## Zilo: from 0 to 40866 wordforms
+
+This September I have been in Zilo for about 5 days:
+
+- collected a dictionary with inflectional type annotation (more then 700 words)
+- created a transducer that analyze/generate 40866 wordforms
+    - about 400 nouns, 70 adjectives, 50 adverbs, numerals
+    - just nominal and adjective inflection
+    - future work: pronouns, verb inflection
+
+# References {.allowframebreaks}
