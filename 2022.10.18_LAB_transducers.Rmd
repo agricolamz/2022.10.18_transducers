@@ -1,5 +1,6 @@
 ---
 title: "Two years of transducers at HSE"
+subtitle: "I dedicate this talk to Nick Howell"
 author: "George Moroz"
 institute: "Linguistic Convergence Laboratory, HSE University, Moscow"
 date: "18 October 2022"
@@ -83,7 +84,7 @@ grViz('
 Trasducers are finite-state networks with two memory tapes of memory that can perform morphological analysis and related tasks. However, it easier to understand via the examples.
 
 - Here is an example of finite-state automaton with one memory tape. It checks whether input string is a word *song*.
-- Usually this "not X" arrow is not written:
+- Usually these "not X" arrow are not written:
 
 ```{r}
 grViz('
@@ -186,10 +187,9 @@ LEXICON Numerals
 гьокьу                # семь; seven
 бейкьи                # восемь; eight
 гьочIо                # девять; nine
-гьоцIо                # десять; ten
 
 LEXICON NumearalMarker
-<num>:>гу
+<num>:гу
 ```
 \pause
 ```
@@ -198,7 +198,6 @@ LEXICON NumearalMarker
 гьокьугу:гьокьу<num>
 бейкьигу:бейкьи<num>
 гьочIогу:гьочIо<num>
-гьоцIогу:гьоцIо<num>
 ```
 
 ## Pipeline for developing morphological transducer
@@ -207,29 +206,28 @@ LEXICON NumearalMarker
 - compile lexicon with inflectional type annotation \pause
 - compile test forms and their analysis based on available data (optional) \pause
     - `чIе<NUM><num><obl.m><epent.m><an.sg><aff> чIегушубо` (Zilo Andi)
-    - 2-num-oml.m-<an.sg>aff
 - test your transducer against some annotated (or not annotated) corpus (optional)
-
 
 ## Main problems during morphological transducer development
 
 - not usual development environment (at least for our students/not computer linguists)
-- time
-- lack of resources
+    - but Tanya Kazakova make it into Google Colab \pause
+- time \pause
+- lack of resources \pause
 - traditions of Apertium people
     - there is a straightforward, but not the shortest way
         - from `чIе<NUM><num><obl.m><epent.m><an.sg><aff> чIегушубо` (Zilo Andi)
-        - to two-ɴᴜᴍ-ᴏʙʟ.ᴍ-<ᴀɴ.sɢ>ᴀꜰꜰ
-- difference in linguistic descriptions
+        - to two-ɴᴜᴍ-ᴏʙʟ.ᴍ-<ᴀɴ.sɢ>ᴀꜰꜰ \pause
+- difference in linguistic descriptions \pause
 - difference in languages
 
 # Zilo: from 0 to 40866 wordforms
 
 ## Zilo: from 0 to 40866 wordforms
 
-This September I have been in Zilo for about 5 days:
+This September I have been in Zilo (Andi) for about 5 days:
 
-- collected a dictionary with inflectional type annotation (more then 700 words)
+- collected a dictionary with inflectional type annotation (more than 700 words)
 - created a transducer that analyze/generate 40866 wordforms
     - about 400 nouns, 70 adjectives, 50 adverbs, numerals
     - just nominal and adjective inflection
