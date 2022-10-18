@@ -19,3 +19,4 @@
 *.blg
 *.bbl
 references*
+*~lock*
